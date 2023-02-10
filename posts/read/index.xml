@@ -9,10 +9,10 @@
     <lastBuildDate>Mon, 06 Feb 2023 01:01:06 +0100</lastBuildDate><atom:link href="/posts/read/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Towards Scaling Blockchain Systems via Sharding</title>
-      <link>/posts/read/sharding/</link>
+      <link>/posts/read/sharding1/</link>
       <pubDate>Mon, 06 Feb 2023 01:01:06 +0100</pubDate>
       
-      <guid>/posts/read/sharding/</guid>
+      <guid>/posts/read/sharding1/</guid>
       <description>Abstract &amp;ldquo;Scaling blockchain systems under general workloads remains an open question&amp;rdquo;. The challenges of scaling are different between databasebases and blockchain since they have different failure models. The major contribution of this paper: Enhance the performance of Byzantine consensus protocols -&amp;gt; inprove the individual shard&amp;rsquo;s throughput. Design an efficient shard formation protocol -&amp;gt; leverage a trsted random beacon to securely assign nodes into shards. Design a general distributed transaction protocol</description>
     </item>
     
