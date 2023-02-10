@@ -2,26 +2,26 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://petecui.github.io/posts/</loc>
+    <loc>/posts/</loc>
     <lastmod>2023-02-06T01:01:06+01:00</lastmod>
   </url><url>
-    <loc>https://petecui.github.io/posts/read/</loc>
+    <loc>/posts/read/</loc>
     <lastmod>2023-02-06T01:01:06+01:00</lastmod>
   </url><url>
-    <loc>https://petecui.github.io/posts/read/sharding/</loc>
+    <loc>/posts/read/sharding/</loc>
     <lastmod>2023-02-06T01:01:06+01:00</lastmod>
   </url><url>
-    <loc>https://petecui.github.io/</loc>
+    <loc>/</loc>
     <lastmod>2023-02-06T01:01:06+01:00</lastmod>
   </url><url>
-    <loc>https://petecui.github.io/categories/</loc>
+    <loc>/categories/</loc>
   </url><url>
-    <loc>https://petecui.github.io/posts/life/</loc>
+    <loc>/posts/life/</loc>
   </url><url>
-    <loc>https://petecui.github.io/series/</loc>
+    <loc>/series/</loc>
   </url><url>
-    <loc>https://petecui.github.io/tags/</loc>
+    <loc>/tags/</loc>
   </url><url>
-    <loc>https://petecui.github.io/posts/tech/</loc>
+    <loc>/posts/tech/</loc>
   </url>
 </urlset>
