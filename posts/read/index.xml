@@ -6,7 +6,16 @@
     <description>Recent content in Read on Zhanbo&#39;s Blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 06 Feb 2023 01:01:06 +0100</lastBuildDate><atom:link href="/posts/read/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sat, 11 Feb 2023 01:01:06 +0100</lastBuildDate><atom:link href="/posts/read/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Monoxide: Scale out Blockchains with Asynchronous Consensus Zones</title>
+      <link>/posts/read/monoxide/</link>
+      <pubDate>Sat, 11 Feb 2023 01:01:06 +0100</pubDate>
+      
+      <guid>/posts/read/monoxide/</guid>
+      <description>Problem In general blockchain, every single node is required to replicate, validate, store and maintain the states of all users in entire network. Solution This paper present a idea to divide the blockchain into different asynchronous consensus zones (multi-instanitiation of independent blockchain systems). Partitioning workloads of the entire network, distribute to zones. Parallelize blovk creation and transaction handling since we have multi-independent blockchain. To achieve linear scalability as the entire</description>
+    </item>
+    
     <item>
       <title>Towards Scaling Blockchain Systems via Sharding</title>
       <link>/posts/read/sharding1/</link>
