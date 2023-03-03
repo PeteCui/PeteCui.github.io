@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>ByzantizingPaxos | Zhanbo&#39;s Blog</title>
+<meta name="keywords" content="">
+<meta name="description" content="之前对于Byzantine Paxos的理解完全建立在Youtube上Mu Shuai老师的讲解视频上，现在决定好好读一遍Lamport老爷爷的">
+<meta name="author" content="Zhanbo">
+<link rel="canonical" href="/posts/read/byzantizingpaxos/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.css" rel="preload stylesheet" as="style">
+<script defer crossorigin="anonymous" src="/assets/js/highlight.js" onload="hljs.initHighlightingOnLoad();"></script>
+<link rel="icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="mask-icon" href="safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --hljs-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript><meta property="og:title" content="ByzantizingPaxos" />
+<meta property="og:description" content="之前对于Byzantine Paxos的理解完全建立在Youtube上Mu Shuai老师的讲解视频上，现在决定好好读一遍Lamport老爷爷的" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/read/byzantizingpaxos/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-02-25T00:49:48+01:00" />
+<meta property="article:modified_time" content="2023-02-25T00:49:48+01:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="ByzantizingPaxos"/>
+<meta name="twitter:description" content="之前对于Byzantine Paxos的理解完全建立在Youtube上Mu Shuai老师的讲解视频上，现在决定好好读一遍Lamport老爷爷的"/>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Posts",
+      "item": "/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  3 ,
+      "name": "Read",
+      "item": "/posts/read/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  4 ,
+      "name": "ByzantizingPaxos",
+      "item": "/posts/read/byzantizingpaxos/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "ByzantizingPaxos",
+  "name": "ByzantizingPaxos",
+  "description": "之前对于Byzantine Paxos的理解完全建立在Youtube上Mu Shuai老师的讲解视频上，现在决定好好读一遍Lamport老爷爷的",
+  "keywords": [
+    
+  ],
+  "articleBody": "之前对于Byzantine Paxos的理解完全建立在Youtube上Mu Shuai老师的讲解视频上，现在决定好好读一遍Lamport老爷爷的原论文并记一下笔记！\nAbstract 我们通过拜占庭化一个普通的Paxos算法推导出一个3f+1进程的拜占庭Paxos共识算法。其中2f+1个nonfaulty进程模仿常规的Paxos算法，同时有f个恶意的进程。\n1. Introduction Paxos算法已经成为一个标准工具去实现一个容错的分布式系统。它使用2f+1个进程去容忍可能出现的f个良性故障。Castro和Liskov开发了一个3f+1进程的算法（PBFT）去容忍拜占庭节点。他们的算法看起来是一个拜占庭版本的Paxos,之后其他一些看起来是拜占庭版本的Paxos也相继出现。\n我们使用一个叫做Byzantizing的更直接的方式将一个分布式的非拜占庭算法推导得到一个拜占庭Paxos算法，Byzantizing 将一个能够容忍最多f个良性故障 N 进程算法转换为一个能够容忍 f 个拜占庭进程的 N+f 进程算法。在被拜占庭化后的算法中，N 个良好的进程模仿原始算法的执行。\n原始算法和拜占庭算法的心脏部分是共识算法。我们拜占庭化一个经典Paxos共识算法的变体，我们称它为PCon。同时将PBFT的抽象概括称为BPCon。\n2. Consensus and Classic Paxos 我们假设通常的异步进程分布式计算模型通过消息传递进行通信。良性的失败指消息的丢失和进程停止。一个拜占庭进程可能发送任何信息，但是我们假设接收者可以确定信息的发送者，这可以通过点对点通信实现或者message authenticators(MACs)\n2.1 Consensus 在一个完备的共识规范中，提议者发起提议，一组接收者一起选择提议值中的一个值，而学习者进程了解什么提议值（如果有的话）已经被选择。共识算法必须容忍一定数量 f 的接受者失败，以及任何提议者或学习者的失败。\n简单起见，我们不考虑提议者和学习者，只考虑接受者。我们关于什么值被选择的定义使如何实现“learning”变得清晰。在Byzantine条件下实现提议者不是容易的，因为我们要防止拜占庭节点伪装成无故障的提议者，但是Castro和Liskov已经解释了如何实现它通过使用数字签名和MACs。通过这种简化，共识的规范由一个平凡的算法组成，其中接受者最多可以选择一个值，但一旦选择了一个值，就必须永远保持选择状态。\n众所周知，容错共识算法不能在纯异步系统中实现。我们要求安全性质成立即使我们没有任何同步假设，而活性属性则在我们有一些同步假设的情况下在无故障进程上成立。\n2.2 Paxos Consensus 简单介绍了一下Paxos\nN：接收者的数量，N必然需要大于f\nquorum: 任何 N-f 个接收者。\n为了实现安全性我们需要任何两个quorum有一个非空的交集，那么 N \u003e 2f ，比如N = 2f+1 ，那么quorum就是 f+1，在N中任意取两组数量为f+1的接收者，两组中一定有至少一个共同的正确进程。另一个关于quorum的性质是我们需要至少有一组quorum完全由无故障的进程组成，这是为了满足活性（理解很简单，因为如果没有这样的quorum存在，那么拜占庭节点可以一直通过无响应来永久的地阻止共识算法取得进展）\n一个接收者在一个ballot下可以最多给一个值投票。一个值在一个ballot下被选择，当且仅当一组法定人数的接收者已经在这个ballot下为这个值进行了投票。\n我们说这个值在一个ballot number下是安全的，如果没有其他值在一个比当前ballot number小的ballot number下被选择或者曾经能够被选择\n该算法保持以下属性\nP1. 一个接收者只有当 v 在ballot b 是安全的，才能够在ballot b 给一个value v 投票\nP2. 不同的接收者不能在相同的ballot下给不同的值投票\n这些性质通过一个ballot b的领导者选择一个在ballot b 下安全的value v以及邀请接收者在ballot b下为这个值投票。一个接收者只有在接受到这样的请求时才会进行投票（当且仅当还没有对任何更高的ballot进行操作）一个ballot b有两个阶段需要进行。\nPhase 1a. ballot-b的领导者发送1a信息给接受者\nPhase 1b. 一个接收者用一个包含它所投的最高ballot和与之相对应的v回复给领导者；或者回复自己还没有投票\nPhase 2a. 根据收到的来自quorum个接收者的1b信息，领导者可以选择一个安全的value v，并将它作为2a信息中的待投票值\nPhase 2b. 接收者基于来自领导者的2a信息，一个接收者通过发送2b信息来在ballot b为v投票\n在Phase 2a的行动中，领导者必须从quorum个1b信息中决定一个安全的值，它通过遵从算法的下列属性来达成这一目的。\nP3a. 如果quorum个接受者现在没有给一个比当前ballot小的值投票，那么所有值在当前ballot下都是安全的\nP3b. 如果在quorum个1b消息中已经有一些接受者投票了，那么选择小于ballot b中最大的ballot c, 在ballot c中投出的值v在ballot b是安全的。(根据P2，这样的值只有一个)\n我们仅仅指出要满足活性的性质，ballot-b的领导者要能够在Phase 2a阶段从quorum个接受者的ballot-b 1b信息中决定一个安全的值。（活锁就是两个proposer因为没有收到足够的ballot-b 1b信息而持续race ballot导致的,如果这里我们陈述有leader,那么就不存在活锁，如果我们能正确地选择safe value,即使会偶尔出现faulty leader,我们也可以预见在有限的轮数内能够完成quorum acceptor接受相同的值，从而reach quorum）\n3. Byzantizing An Algorithm 我们通过让N个接受者在有f个假装接受者的情况下模拟一个共识算法，来对其进行拜占庭化。同时不是接受者的进程也可能是拜占庭的，特别是一个拜占庭化的Paxos算法必须能够容忍恶意的领导者，然而一个无恶意行为的领导者是满足活性所必要的。\nemulation意味着执行一个操作，在refinement mapping下，该操作是emulated algorithm的操作。refinement mapping将emulating system (the implementation)的每个状态映射到the emulated one (the specification)的一个状态。\n我们提前假设哪一个进程可能是恶意的，因为拜占庭化的算法假设我们对于谁是real的接收者和谁是fake的接收者一无所知，所以这样的假设结果不会损失一般性。此外，由于恶意进程可以做任何事情，包括像非故障进程一样行事，我们可以通过假设正好有f个fake的接受者从一开始就是恶意的，来证明该算法可以容忍至少f个恶意接受者。\n我们将 byzacceptors 的集合定义为real和fake接受者集合的联合。我们将byzquorum 定义为一个保证包含 a quorum of real acceptors 的 byzacceptors集合。如果一个quorum由任何q个接受者组成，那么一个byzquorum由任何q+f个byzacceptors组成。为了保证liveness，我们需要假设所有real接受者集合（我们假设它们永远不会失败）能够形成一个byzquorum.（此处和之前一样）\n在拜占庭化的算法中，一个非故障进程必须确保其模拟中的每个动作都能够在原始算法下被执行。\nPaxos共识中的关键行动是领导者的第2a phase的行动，它根据属性P3a和P3b选择一个安全值\n领导者可以推导出P3a成立，如果它收到byzquorum个1b消息并且断定他们的发送者没有进行投票（因为byzquorum包含quorum的接收者）\nP3b可能会出现问题。在拜占庭化的算法中，我们无法决定一个1b消息是来自real还是fake的接受者。一个可以保证安全性的方式是要求被选择的拥有最高ballot number的值来自f+1个byzacceptors。但这样严苛的要求会使我们丧失活性，因为可能存在这样一种状态：因为有的real接受者还没有投票，所以我们收到的f+1个来自real接受者的1b消息并没有都投票给同一个值 ！（这个时候我们还是在N \u003e 2f的情况下考虑问题，保证了安全性，但没有保证活性。换句话说，为了保证协议的活性，我们在收到一定数量的1b消息后必须做出抉择）\n一个解决这个问题办法是假设N \u003e 3f。在这种情况下我们能在收到更多数量的1b消息后再做出抉择，并且同时还保证了活性,此时任何两个quorums有至少f+1个公共的接收者。这个时候因为增加了N的数量所以quorum也被增加为至少2f+1\nP3a和P3b将会被替换成。\nP3a‘ 如果f+1个ballot c小于b的接受者还没有投票，那么所有值在ballot b都是安全的。\nP3b’ 如果f+1个ballot c小于b的接受者已经投票，那么这个ballot c对应的值在ballot b是安全的。\nPhase 2a只有在收到了byzquorum个1b消息才能进行，如果P3a‘没有成立，那么我们就可以应用P3b’,然而这是不满足的因为这会导致我们需要多于4f个接受者。（因为为了满足活性，那么我们收到的2f+1个消息后就要做出决定，但是这2f+1个消息可能可以被分为三种类型：1.投票给上一个ballot的安全值。2.未投票。3.伪造的投票。因为在考虑安全性时我们没有任何同步假设，即消息可能丢失，所以我们存在这样一种状态：第三种消息在2f+1个1b消息中的比例等于第一种消息且未投票的接受者数量不满足P3a‘，这个时候我们难以做出抉择！（例子：在收到的2f+1个1b消息中有f个fake vote，f个real vote, 1个no vote）更简单地说，因为之前接受者不会撒谎，所以出现在1b消息中的值是唯一的，而此时接受者是拜占庭的，所以。所以为了能够表决出伪造的投票，我们需要增加quorum的数量，我们需要让quorum 中至少有f+1个1b消息投给相同的值(no vote/a value voted)以帮助proposer做出决定，此时 quorum至少为2f+1个来自real接受者的1b信息可以帮我们在正确的值中做出抉择（no vote/a value voted），再加上f个来自fake接受者的1b信息，所以此时 byzquorum至少为3f+1 个1b消息。同时为了满足活性，所以需要至少4f+1个接受者。（Lamport这部分直接一笔带过,所以这部分的例子和推导是我自己想的，不保真但是可以说服我自己！）这里用于shrinkN \u003e 4f的解决办法是杜绝接受者撒谎，后面会解释！\n这里还有另外一个问题。为了能够使Phase 2a能够进行，leader也不能发送不同的2a消息。如果P3a’成立，一个恶意的节点可能发送两种不同的2a消息，这可能导致两种不同的值在两个之后的ballot中被选择。\n解决leader欺骗的方法是让leader和acceptors合作模仿Phase 2a的执行，使用一个新的Phase 2av行动。 领导者leader发送为一个特定的值v执行Phase 2a的请求给byzacceptors。一个接受者通过执行一个发送关于value v的2av消息给所有byzacceptors的Phase 2av行动来响应这个请求。一个byzacceptor执行Phase 2av, 只有当\n它能决定这样的一个2a消息在算法中能够被发出。\n在当前的ballot中，它还没有执行Phase 2b行动。\n一个接受者可以执行Phase 2b行动，如果它收到byzquorum个有同一个值的2av信息。由于任意两个byzquorums有至少一个公共的real acceptor, 所以没有两个real接受者会因为各自收byzquorum个两个不同的值，而执行不同的Phase 2b行动（为不同的值投票）。\n(这部分对应PBFT中阶段的关系是Pre-Prepare+Prepare: Phase 2av; Commit: Phase 2b)\n4. Algorithm PCon 这个章节介绍一个我们称之为PCon经典Paxos共识算法的变体。就像经典的Paxos，它假设N个接受者（N \u003e 2f+1）\n在上面描述的经典Paxos算法中，一个ballot-b 2a消息有两个功能：\n（1）它断言这个值在ballot-b是安全的。\n（2）它指示接受者们在ballot-b为这个值投票。\n在算法Pcon中，我们引入1c消息来实现（1），同时我们运行leader发送多个1c消息去断言多个值是安全的。我们引入了Phase 1c和Phase 2a.\nPhase 1c. 使用来自quorum个接收者的1b消息，leader选择一组在ballot b安全的值，同时为每一个值发送一个1c消息。\nPhase 2a. leader为一些已经为它发送了1c消息的值发送一个2a消息。\nleader不需要一次性发送所有的1c消息；它能使用单个ballot执行Phase 1c行动多次。而对于如何在Phase 1c行动中选择一个安全值，ballot-b的leader从quorum个接受者处收到1b消息后，用如下情况进行选择。\nP3a. 如果quorum个接受者现在没有给一个比当前ballot小的值投票，那么所有值在当前ballot下都是安全的\nP3c. 如果一个值为v的ballot-c消息在Phase 1c被发出，对于c \u003c b。1. quorum个接受者现在没有为任何大于c小于b的ballot投票。 2. 这quorum个接受者的任何一个在ballot-c进行了投票且都投票给了v，那么v在ballot-b就是安全的\nballot-b的leader应该将1c消息发送给谁？以及它如何知道在lower ballot被发出的1c消息是哪些，从而检查P3c是否成立？在PCon中，1c消息是逻辑构造的，而不需要实际发送。发送一个2a消息意味着必要的1c消息已经被发出，一个报告在ballot c投票的1b消息意味着一个ballot-c 1c消息必须被发出过。（也就是如果一个1b消息报告在某个ballot给某个值投了票，如果这个1b信息是安全的，那么曾经应该有一个与之这个值对应的1c信息在某个更小的ballot被发出过） 既然这个1c信息是我们逻辑构造的，那么我们为什么要在之前的算法中引入他呢？\n系统不可能基于一个固定的接受者集合长时间地运行。接受者可能被移除和添加——一个叫做reconfiguration的程序。在经典的Paxos中，reconfiguration发生在共识实例间，单实例能够有效地被单个固定的接受者集合执行。现在已经有算法提出在单个共识实例地执行间进行reconfiguration，使用不同的ballot和可能不同的接受者集合：Vertical Paxos和未发表的Cheap Paxos（2023年了不知道发表了没有= =！）1c消息的作用是消除对于lower-numbered ballots接受者的依赖，它们可能已经被reconfigured out了(比如一个接受者接受了，但他被移除出了系统)。 当一个新的活跃leader开始ballot b时，情况P3a适用于ballot b第二阶段阶段尚未开始的无限多个实例。leader的1c消息可以通知未来的leader这个事实，因此，他们不必了解在编号小于b的ballot中的投票情况。（有点没懂，翻译也看不明白！但是按照我的理解就是未来的leader可以靠1c知道任何在比b小的ballot的投票情况？好像有道理，未来的leader是现在的acceptor,那么因为现在的acceptor收到了1c信息，那么未来如果它成为leader，它就能够根据之前收到的1c信来检查P3c的情况是否成立）\n根据定义，如果两个不同的值在ballot b是安全的，那么所有的值在ballot b都是安全的。 除了发送消息说一个单一的值是安全的，或者发送消息说所有的值都是安全的，领导者没有理由做任何其他事情。\n5. Algorithm BPCon 我们现在派生出算法BPCon通过拜占庭化N-acceptor算法PCon以及添加f个fake接受者。我们先考虑一个leader进程的行动。leader在算法BPCon中没有明确的2a消息或者Phase 2a行动。取而代之的是，接受者合作模仿2a消息的发送。ballot-b的领导者要求对已经发送过1c消息的值v进行2a阶段的操作。在收到第一个这样的请求后，一个接受者执行一个Phase 2av行动， 为value v发送一个ballot-b 2av消息。前提是它已经收到一个关于这个值的合法的ballot-b 1c\n因为leader的请求只对liveness是必要的，我们不刻意地去建模它。取而代之，我们允许一个接受者去执行一个ballot b的Phase 2av行动当且仅当它已经收到了必要的1C行动，并且还没有发送一个 ballot-b的2av消息。\n因为算法必须容忍恶意的领导者，我们让ballot-b的领导者能够发送任意它像发送的1a和1c消息（牢记我们不能发送一个看似是其他人发送的消息）。ballot-b 1a消息在PCon中只有一种可能性，同时被允许在Phase 1a行动的任何时间发送。于是在BPCon的Phase 1a行动中与PCon的Phase 1a一致。BPCon的phase 1c行动允许ballot-b的领导者在任何时候去发送任何ballot-b的1c信息。\n接受者将会忽略非法的1c消息。为了保证活性，一个无故障的领导者必须发送一个real接受者能够响应的消息。我们必须确定接受者如何知道一个1c 信息是合法的。\n在PCon中，通过上述P3a或P3c启用投票-B 1c消息的发送，这需要从一个法定人数中收到一组1b消息并可能收到一个1c信息。在BPCon中，我们将额外信息放入1b消息中使能够进行1c消息已经被发送的推导。一个接受者将所有它发送过的2av消息作为集合装进1b消息中——对每一个值，它只将它为这个值发送的最高ballot的2av消息放入其中。这些被发送的2av消息中的每一个都对应一个合法的1c消息。 如同我们在第三节中关于拜占庭化的讨论,这意味着给定一组来自byzquorum关于ballot b的1b消息S，以下两个条件分别对应之前的P3a和P3c：\nBP3a. 每个在S中的消息都断言它的发送者还没有投票。\nBP3c. 对一些c \u003c b和一些值 v, (a)每个在S中的消息都断言 (i)它的发送者没有在任何大于c的ballot投票以及 (ii) 如果它在ballot-c的投票是v， 且(b)有f+1个来自byzacceptors的1b消息表明它们在ballot-c发送了关于value v的2av消息\n稍微思考一下就会发现我们可以弱化BP3c关于条件(b)断言：\n(b’) 如果存在f+1个来自byzacceptors的1b消息表明他们在一个大于或等于c的ballot发送了关于value v的2av消息\n去决定是否一个1c消息是合法的，每个接受者维护一个他们知道的已经发送了的1b消息的集合。 我们的抽象算法假设一个行动nondeterministically将实际发送的1b消息的子集添加进这个集合。当然，一些1b消息可能来自fake接受者。活性要求领导者确保接受者最终知道允许领导者发送 1c 消息的 1b 消息已发送\n如前面讨论的，当它从quorum个接受者收到相同的2av消息，一个接受者才能执行Phase2b行动。一个PCon的2a消息被一组被quorum发送的相同的2av消息模拟，同时Phase2a被这组相同的2av消息中最后被发送的那条信息所模仿（代表）。\n6. 关于被发送消息的活性和学习 PCon的活性要求一个无故障的领导者执行一个ballot b时没有另一个leader开始一个更高的ballot,同时leader和无故障的接受者能互相通信。BPCon的活性要求和PCon也是一样的。然而。这很难去确保一个拜占庭的领导者不执行一个更高的ballot。解决这个问题需要一些基于实时假设的工程解决方案。\n假设这些要求，BPCon的活性要求满足以下两个条件：\nBL1. 领导者能找到满足BP3a或者BP3c的1b消息。\nBL2. 全部真的接受者将知道那些已经被发送的消息。\n这两个条件意味着领导者将发送一个合法的1c消息，byzquorum的real接受者将收到1c消息以及发送2av消息，所有在byzquorum的接受者将收到哪些2av消息以及发送2b消息。学习者根据收到的这些2b消息将会学习到被选择的值。\n为了证明BL1成立，ballot-b的领导者最终会从BQ的接受者们那里收到1b的信息。让S记作这些1b消息的集合。我们现在证明BP3a或者BP3c成立。\n只要假设BP3a是假的，并证明BP3c就可以了。\n令 c 为 BQ 中的接受者投票的最大ballot，令 a 为这样的接受者，并令 v 为其投票的值。\n证明：由1的假设可以得出存在这样一个 c。\n接受者a收到来自byzquorum的在ballot-c的关于值v的2av消息。\n证明：通过2以及Phase2b行动的启动条件。\n没有其他接受者在ballot c给其他不是v的值投票。\n证明：通过2可以证明，因为任何两个byzquorums由一个公共的接受者，以及一个接受者最多发送一次ballot-c的2av消息。\n至少f+1个接受者发送关于值v的ballot-c 2av消息。\n证明：通过3证明，因为一byzquorum包含至少f+1个接受者。\nBP3c的条件(b‘)成立。\n证明：通过5，因为一个发送一个关于value v的ballot-c 2av消息的接受者意味着，对于b \u003e c，它的ballot-b 1b消息将会报告它在某些大于等于c的ballot发送过一个关于value v的2av消息。\nBP3c的条件(a)成立。\n证明：通过2(没有在BQ中的接受者在大于ballot-c的ballot投票)，以及4\nQED。\n证明：通过1，6和7。\n这表明 BL1 最终成立。 为了证明活性，我们需要证明 BL2 成立。 为了确保它成立，领导者必须有办法确保所有真正的接受者最终都知道发送了 1b 消息。 如果 1b 消息是由真正的接受者发送的，那么该接受者可以将其 1b 消息广播给所有的byzacceptors以及领导者 我们现在提出两种方法来确保接受者知道发送了 1b 消息，即使它是由假接受者发送的。\n6.1 发送证明 最简单的方法是领导者在其 1c 消息中包含一个证明，证明所有必要的 1b 消息都已发送。 最简单的方法是使用完整的数字签名并让 byzacceptors 签署他们的 1b 消息。领导者可以在其 1c 消息中包含必要的正确签名的 1b 消息。\n还可以使用MACs。一个MAC是一个签名Mp-\u003eq，一个进程p能够附带在一个消息m上，向进程q证明p发送了m。MAC Mp-\u003eq不能向除了q以外的其他进程证明任何事。\n假设一个消息m断言一个确定的事实，一个进程q收到这个消息以及从f+1个不同的进程p的MAC Mp-\u003eq。因为最多有f个拜占庭进程，他们中的至少一个进程的断言是真的。然而，q不能向其他任何进程证明这个事实是真实的。然而，假设它从2f+1个进程收到一个MACs的向量向量\u003c Mp-\u003er1, …., Mp-\u003erk \u003e以及这个消息。向量中的至少f+1由无故障进程p发送，所以他们有正确的MACs以及能够说服对应的ri进程有一个无故障的进程发送了M。因此，q能够发送消息m以及这样的MACs的2f+1个项的向量给每个进程ri作为m的断言的证明。\n6.2 中继1b消息 我们现在描述另一个方式能确保好的接受者知道1b消息被发送了（接受者最终知道允许领导者发送 1c 消息的 1b 消息已发送）。我们让byzacceptors广播他们的1b消息给所有的byzacceptors（包括领导），同时让他们中继这个1b消息给他们的领导者以及其他byzacceptors。根据收到来自2f+1个byzacceptors的1b消息，领导者知道至少f + 1个真的接受者发送或中继给了所有byzacceptors。假设对活性的要求，这意味着所有的接受者最终都会从 f +1 个不同的的byzacceptors那里收到 1b 消息的副本（因为f+1个真的接受者会根据协议广播，并中继别人的1b消息），从中它推断出消息确实被发送了。（由其他人转发代表真的广播了）\n这是Castro和Liskov使用的基本方法。 然而，在他们的算法中，byzacceptors 仅将广播的 1b 消息（他们称为 view-change-acks）转发给领导者（他们称为primary）。 领导者在其 1c 消息中包含（摘要）1b 消息，并且接受者要求其他 byzacceptors 中继 1c 消息中它尚未收到的任何 1b 消息。\n7. Castro-Liskov算法 Castro-Liskov算法，就像Paxos，运行一个状态机通过执行一个有无限实列的共识算法。它包含对于处理实例的顺序的工程优化，特别是对于旧实例的垃圾收集，以及对于修复进程的状态迁移。我们认为，这些优化可以通过对经典Paxos的相应优化进行拜占庭化来获得，但是他们与共识无关。一些其他优化，比如不发送完整信息而是发送消息的摘要，是一些我们为了简单起见而忽视的细节。\n当我们忽视这些细节，只关心Castro-Liskov的共识算法本身，我们剩下的是一个完善BPCon的算法。在Castro-Liskov算法中，byzacceptors被叫做replicas。 ballot-b的领导者叫做primary，其他byzacceptors被叫做backups。replicas也被称作学习者。 我们通过描述 BPCon 的消息是如何实现的来解释 Castro-Liskov 共识算法是如何改进 BPCon 的。\n1a 没有明确的1a消息；当复制体决定开始view change时，其发送是由复制体合作模仿的。\n1b view-change消息。\n1c 在view change期间，new-view消息对所有共识实例来说就像1c信息一样。 对于一个primary指示replicas去选择一个特定值的实例，它是具有该值的 1c 消息。 对于所有其他实例，它是所有值的一组 1c 消息。 （条件 BP3a 在那些其他实例中成立。）接受者同时为所有实例检查这些 1c 消息的有效性。\n2av 这是一个backup的prepare消息。primary的pre-prepare消息serves as 2av消息以及请求一个Phase 2a行动\n2b 这是Commit phase\n如同在6.2节中解释的一样，Castro-Liskov算法的view-change-ack被用作中继1b消息给领导。它的reply消息被replicas发送，作为learners去通知client被选择的值。\n我们在第 3 节中解释了拜占庭经典 Paxos 的困难。 我们无法从经典的 Paxos 中获得 Castro-Liskov 算法并不是拜占庭化的缺陷； 这是因为该算法没有对经典的 Paxos 进行细化——至少，在任何简单的细化映射下都没有。 在 Castro-Liskov 共识算法中，领导者可能需要预先准备一个值 v，即使在之前的视图中没有副本提交过 v。 这在经典的 Paxos 中是不可能发生的。\n",
+  "wordCount" : "10673",
+  "inLanguage": "en",
+  "datePublished": "2023-02-25T00:49:48+01:00",
+  "dateModified": "2023-02-25T00:49:48+01:00",
+  "author":[{
+    "@type": "Person",
+    "name": "Zhanbo"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "/posts/read/byzantizingpaxos/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Zhanbo's Blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="" accesskey="h" title="Zhanbo&#39;s Blog (Alt + H)">
+                <img src="img/profile.jpg" alt="" aria-label="logo"
+                    height="35">Zhanbo&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="/" title="Home">
+                    <span>Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="posts" title="Posts">
+                    <span>Posts</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="">Home</a>&nbsp;»&nbsp;<a href="/posts/">Posts</a>&nbsp;»&nbsp;<a href="/posts/read/">Read</a></div>
+    <h1 class="post-title">
+      ByzantizingPaxos
+    </h1>
+    <div class="post-meta"><span title='2023-02-25 00:49:48 +0100 CET'>2023-02-25</span>&nbsp;·&nbsp;22 min&nbsp;·&nbsp;Zhanbo
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><ul><ul>
+                <li>
+                    <a href="#abstract" aria-label="Abstract">Abstract</a></li>
+                <li>
+                    <a href="#1-introduction" aria-label="1. Introduction">1. Introduction</a></li>
+                <li>
+                    <a href="#2-consensus-and-classic-paxos" aria-label="2. Consensus and Classic Paxos">2. Consensus and Classic Paxos</a><ul>
+                        
+                <li>
+                    <a href="#21-consensus" aria-label="2.1 Consensus">2.1 Consensus</a></li>
+                <li>
+                    <a href="#22-paxos-consensus" aria-label="2.2 Paxos Consensus">2.2 Paxos Consensus</a></li></ul>
+                </li>
+                <li>
+                    <a href="#3-byzantizing-an-algorithm" aria-label="3. Byzantizing An Algorithm">3. Byzantizing An Algorithm</a></li>
+                <li>
+                    <a href="#4-algorithm-pcon" aria-label="4. Algorithm PCon">4. Algorithm PCon</a></li>
+                <li>
+                    <a href="#5-algorithm-bpcon" aria-label="5. Algorithm BPCon">5. Algorithm BPCon</a></li>
+                <li>
+                    <a href="#6-%e5%85%b3%e4%ba%8e%e8%a2%ab%e5%8f%91%e9%80%81%e6%b6%88%e6%81%af%e7%9a%84%e6%b4%bb%e6%80%a7%e5%92%8c%e5%ad%a6%e4%b9%a0" aria-label="6. 关于被发送消息的活性和学习">6. 关于被发送消息的活性和学习</a></li>
+                <li>
+                    <a href="#61-%e5%8f%91%e9%80%81%e8%af%81%e6%98%8e" aria-label="6.1 发送证明">6.1 发送证明</a></li>
+                <li>
+                    <a href="#62-%e4%b8%ad%e7%bb%a71b%e6%b6%88%e6%81%af" aria-label="6.2 中继1b消息">6.2 中继1b消息</a></li></ul>
+                    
+                <li>
+                    <a href="#7-castro-liskov%e7%ae%97%e6%b3%95" aria-label="7. Castro-Liskov算法">7. Castro-Liskov算法</a>
+                </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><p>之前对于Byzantine Paxos的理解完全建立在Youtube上Mu Shuai老师的讲解视频上，现在决定好好读一遍Lamport老爷爷的原论文并记一下笔记！</p>
+<h2 id="abstract">Abstract<a hidden class="anchor" aria-hidden="true" href="#abstract">#</a></h2>
+<p>我们通过拜占庭化一个普通的Paxos算法推导出一个3f+1进程的拜占庭Paxos共识算法。其中2f+1个nonfaulty进程模仿常规的Paxos算法，同时有f个恶意的进程。</p>
+<h2 id="1-introduction">1. Introduction<a hidden class="anchor" aria-hidden="true" href="#1-introduction">#</a></h2>
+<p>Paxos算法已经成为一个标准工具去实现一个容错的分布式系统。它使用2f+1个进程去容忍可能出现的f个良性故障。Castro和Liskov开发了一个3f+1进程的算法（PBFT）去容忍拜占庭节点。他们的算法看起来是一个拜占庭版本的Paxos,之后其他一些看起来是拜占庭版本的Paxos也相继出现。</p>
+<p>我们使用一个叫做<em>Byzantizing</em>的更直接的方式将一个分布式的非拜占庭算法推导得到一个拜占庭Paxos算法，<em>Byzantizing</em> 将一个能够容忍最多<em>f</em>个良性故障 <em>N</em>  进程算法转换为一个能够容忍 <em>f</em>  个拜占庭进程的 <em>N+f</em> 进程算法。在被拜占庭化后的算法中，<em>N</em> 个良好的进程模仿原始算法的执行。</p>
+<p>原始算法和拜占庭算法的心脏部分是共识算法。我们拜占庭化一个经典Paxos共识算法的变体，我们称它为PCon。同时将PBFT的抽象概括称为BPCon。</p>
+<h2 id="2-consensus-and-classic-paxos">2. Consensus and Classic Paxos<a hidden class="anchor" aria-hidden="true" href="#2-consensus-and-classic-paxos">#</a></h2>
+<p>我们假设通常的异步进程分布式计算模型通过消息传递进行通信。良性的失败指消息的丢失和进程停止。一个拜占庭进程可能发送任何信息，但是我们假设接收者可以确定信息的发送者，这可以通过点对点通信实现或者message authenticators(MACs)</p>
+<h3 id="21-consensus">2.1 Consensus<a hidden class="anchor" aria-hidden="true" href="#21-consensus">#</a></h3>
+<p>在一个完备的共识规范中，提议者发起提议，一组接收者一起选择提议值中的一个值，而学习者进程了解什么提议值（如果有的话）已经被选择。共识算法必须容忍一定数量 <em>f</em> 的接受者失败，以及任何提议者或学习者的失败。</p>
+<p>简单起见，我们不考虑提议者和学习者，只考虑接受者。我们关于什么值被选择的定义使如何实现“learning”变得清晰。在Byzantine条件下实现提议者不是容易的，因为我们要防止拜占庭节点伪装成无故障的提议者，但是Castro和Liskov已经解释了如何实现它通过使用数字签名和MACs。通过这种简化，共识的规范由一个平凡的算法组成，其中接受者最多可以选择一个值，但一旦选择了一个值，就必须永远保持选择状态。</p>
+<p>众所周知，容错共识算法不能在纯异步系统中实现。<strong>我们要求安全性质成立即使我们没有任何同步假设，而活性属性则在我们有一些同步假设的情况下在无故障进程上成立</strong>。</p>
+<h3 id="22-paxos-consensus">2.2 Paxos Consensus<a hidden class="anchor" aria-hidden="true" href="#22-paxos-consensus">#</a></h3>
+<p>简单介绍了一下Paxos</p>
+<p><em>N</em>：接收者的数量，<em>N</em>必然需要大于<em>f</em></p>
+<p><em>quorum</em>: 任何 <em>N-f</em> 个接收者。</p>
+<p>为了实现安全性我们需要任何两个<em>quorum</em>有一个非空的交集，那么 <em>N &gt; 2f</em> ，比如<em>N = 2f+1</em> ，那么<em>quorum</em>就是 <em>f+1</em>，在<em>N</em>中任意取两组数量为<em>f+1</em>的接收者，两组中一定有至少一个共同的正确进程。另一个关于<em>quorum</em>的性质是我们需要至少有一组<em>quorum</em>完全由无故障的进程组成，这是为了满足活性（理解很简单，因为如果没有这样的<em>quorum</em>存在，那么拜占庭节点可以一直通过无响应来永久的地阻止共识算法取得进展）</p>
+<p>一个接收者在一个ballot下可以最多给一个值投票。一个值在一个ballot下被选择，当且仅当一组法定人数的接收者已经在这个ballot下为这个值进行了投票。</p>
+<p><strong>我们说这个值在一个ballot number下是安全的，如果没有其他值在一个比当前ballot number小的ballot number下被选择或者曾经能够被选择</strong></p>
+<p>该算法保持以下属性</p>
+<p><strong>P1. 一个接收者只有当 v 在ballot b 是安全的，才能够在ballot b 给一个value v 投票</strong></p>
+<p><strong>P2. 不同的接收者不能在相同的ballot下给不同的值投票</strong></p>
+<p>这些性质通过一个ballot b的领导者选择一个在ballot b 下安全的value v以及邀请接收者在ballot b下为这个值投票。一个接收者只有在接受到这样的请求时才会进行投票（当且仅当还没有对任何更高的ballot进行操作）一个ballot b有两个阶段需要进行。</p>
+<p><strong>Phase 1a. ballot-b的领导者发送1a信息给接受者</strong></p>
+<p><strong>Phase 1b. 一个接收者用一个包含它所投的最高ballot和与之相对应的v回复给领导者；或者回复自己还没有投票</strong></p>
+<p><strong>Phase 2a. 根据收到的来自quorum个接收者的1b信息，领导者可以选择一个安全的value v，并将它作为2a信息中的待投票值</strong></p>
+<p><strong>Phase 2b. 接收者基于来自领导者的2a信息，一个接收者通过发送2b信息来在ballot b为v投票</strong></p>
+<p>在Phase 2a的行动中，领导者必须从quorum个1b信息中决定一个安全的值，它通过遵从算法的下列属性来达成这一目的。</p>
+<p><strong>P3a. 如果quorum个接受者现在没有给一个比当前ballot小的值投票，那么所有值在当前ballot下都是安全的</strong></p>
+<p><strong>P3b. 如果在quorum个1b消息中已经有一些接受者投票了，那么选择小于ballot b中最大的ballot c, 在ballot c中投出的值v在ballot b是安全的。(根据P2，这样的值只有一个)</strong></p>
+<p>我们仅仅指出要满足活性的性质，ballot-b的领导者要能够在Phase 2a阶段从quorum个接受者的ballot-b 1b信息中决定一个安全的值。（活锁就是两个proposer因为没有收到足够的ballot-b 1b信息而持续race ballot导致的,如果这里我们陈述有leader,那么就不存在活锁，如果我们能正确地选择safe value,即使会偶尔出现faulty leader,我们也可以预见在有限的轮数内能够完成quorum acceptor接受相同的值，从而reach quorum）</p>
+<h2 id="3-byzantizing-an-algorithm">3. Byzantizing An Algorithm<a hidden class="anchor" aria-hidden="true" href="#3-byzantizing-an-algorithm">#</a></h2>
+<p>我们通过让<em>N</em>个接受者在有<em>f</em>个假装接受者的情况下模拟一个共识算法，来对其进行拜占庭化。<strong>同时不是接受者的进程也可能是拜占庭的，特别是一个拜占庭化的Paxos算法必须能够容忍恶意的领导者，然而一个无恶意行为的领导者是满足活性所必要的</strong>。</p>
+<p>emulation意味着执行一个操作，在refinement mapping下，该操作是emulated algorithm的操作。refinement mapping将emulating system (the implementation)的每个状态映射到the emulated one (the specification)的一个状态。</p>
+<p>我们提前假设哪一个进程可能是恶意的，因为拜占庭化的算法假设我们对于谁是real的接收者和谁是fake的接收者一无所知，所以这样的假设结果不会损失一般性。此外，由于恶意进程可以做任何事情，包括像非故障进程一样行事，我们可以通过假设正好有<em>f</em>个fake的接受者从一开始就是恶意的，来证明该算法可以容忍至少<em>f</em>个恶意接受者。</p>
+<p><strong>我们将 <em>byzacceptors</em> 的集合定义为real和fake接受者集合的联合。我们将<em>byzquorum</em> 定义为一个保证包含 <em>a quorum of real acceptors 的 byzacceptors</em>集合。如果一个<em>quorum</em>由任何<em>q</em>个接受者组成，那么一个<em>byzquorum</em>由任何<em>q+f</em>个<em>byzacceptors</em>组成。为了保证<em>liveness</em>，我们需要假设所有real接受者集合（我们假设它们永远不会失败）能够形成一个<em>byzquorum</em>.（此处和之前一样）</strong></p>
+<p>在拜占庭化的算法中，一个非故障进程必须确保其模拟中的每个动作都能够在原始算法下被执行。</p>
+<p><strong>Paxos共识中的关键行动是领导者的第2a phase的行动，它根据属性P3a和P3b选择一个安全值</strong></p>
+<ul>
+<li>
+<p>领导者可以推导出P3a成立，如果它收到byzquorum个1b消息并且断定他们的发送者没有进行投票（因为byzquorum包含quorum的接收者）</p>
+</li>
+<li>
+<p>P3b可能会出现问题。在拜占庭化的算法中，我们无法决定一个1b消息是来自real还是fake的接受者。一个可以保证安全性的方式是要求被选择的拥有最高ballot number的值来自<em>f+1</em>个byzacceptors。但这样严苛的要求会使我们丧失活性，因为可能存在这样一种状态：因为有的real接受者还没有投票，所以我们收到的<em>f+1</em>个来自real接受者的1b消息并没有都投票给同一个值 ！<strong>（这个时候我们还是在<em>N &gt; 2f</em>的情况下考虑问题，保证了安全性，但没有保证活性。换句话说，为了保证协议的活性，我们在收到一定数量的1b消息后必须做出抉择）</strong></p>
+<p>一个解决这个问题办法是假设<em>N &gt; 3f</em>。在这种情况下<strong>我们能在收到更多数量的1b消息后再做出抉择，并且同时还保证了活性</strong>,此时任何两个quorums有至少<em>f+1</em>个公共的接收者。<strong>这个时候因为增加了<em>N</em>的数量所以quorum也被增加为至少<em>2f+1</em></strong></p>
+<p>P3a和P3b将会被替换成。</p>
+</li>
+</ul>
+<p><strong>P3a‘ 如果<em>f+1</em>个ballot c小于b的接受者还没有投票，那么所有值在ballot b都是安全的。</strong></p>
+<p><strong>P3b’ 如果<em>f+1</em>个ballot c小于b的接受者已经投票，那么这个ballot c对应的值在ballot b是安全的。</strong></p>
+<p>Phase 2a只有在收到了<strong>byzquorum</strong>个1b消息才能进行，如果P3a‘没有成立，那么我们就可以应用P3b’,然而这是不满足的因为这会导致我们需要多于<em>4f</em>个接受者。（因为为了满足活性，那么我们收到的<em>2f+1</em>个消息后就要做出决定，但是这<em>2f+1</em>个消息可能可以被分为三种类型：1.投票给上一个ballot的安全值。2.未投票。3.伪造的投票。因为在考虑安全性时我们没有任何同步假设，即消息可能丢失，所以我们存在这样一种状态：第三种消息在<em>2f+1</em>个1b消息中的比例等于第一种消息且未投票的接受者数量不满足P3a‘，这个时候我们难以做出抉择！（例子：在收到的<em>2f+1</em>个1b消息中有<em>f</em>个fake vote，<em>f</em>个real vote, 1个no vote）更简单地说，因为之前接受者不会撒谎，所以出现在1b消息中的值是唯一的，而此时接受者是拜占庭的，所以。所以为了能够表决出伪造的投票，我们需要增加<em>quorum</em>的数量，我们需要让<em>quorum</em> 中至少有<em>f+1</em>个1b消息投给<strong>相同</strong>的值(no vote/a value voted)以帮助proposer做出决定，此时 <em>quorum至少为2f+1</em>个来自real接受者的1b信息可以帮我们在正确的值中做出抉择（no vote/a value voted），再加上<em>f</em>个来自fake接受者的1b信息，所以此时 <em>byzquorum至少为3f+1</em> 个1b消息。同时为了满足活性，所以需要至少<em>4f+1</em>个接受者。（Lamport这部分直接一笔带过,所以这部分的例子和推导是我自己想的，不保真但是可以说服我自己！）<strong>这里用于shrink<em>N &gt; 4f</em>的解决办法是杜绝接受者撒谎，后面会解释！</strong></p>
+<p>这里还有另外一个问题。为了能够使Phase 2a能够进行，leader也不能发送不同的2a消息。如果P3a’成立，一个恶意的节点可能发送两种不同的2a消息，这可能导致两种不同的值在两个之后的ballot中被选择。</p>
+<p><strong>解决leader欺骗的方法是让leader和acceptors合作模仿Phase 2a的执行，使用一个新的Phase 2av行动。</strong> 领导者leader发送为一个特定的值<em>v</em>执行Phase 2a的请求给<em>byzacceptors</em>。一个接受者通过执行一个发送关于value v的2av消息给所有<em>byzacceptors</em>的Phase 2av行动来响应这个请求。一个<em>byzacceptor</em>执行Phase 2av, 只有当</p>
+<ul>
+<li>
+<p>它能决定这样的一个2a消息在算法中能够被发出。</p>
+</li>
+<li>
+<p>在当前的ballot中，它还没有执行Phase 2b行动。</p>
+</li>
+</ul>
+<p>一个接受者可以执行Phase 2b行动，如果它收到byzquorum个有同一个值的2av信息。由于任意两个byzquorums有至少一个公共的real acceptor, 所以没有两个real接受者会因为各自收byzquorum个两个不同的值，而执行不同的Phase 2b行动（为不同的值投票）。</p>
+<p><strong>(这部分对应PBFT中阶段的关系是Pre-Prepare+Prepare: Phase 2av; Commit: Phase 2b)</strong></p>
+<h2 id="4-algorithm-pcon">4. Algorithm PCon<a hidden class="anchor" aria-hidden="true" href="#4-algorithm-pcon">#</a></h2>
+<p>这个章节介绍一个我们称之为<em>PCon</em>经典Paxos共识算法的变体。就像经典的Paxos，它假设<em>N</em>个接受者（<em>N &gt; 2f+1</em>）</p>
+<p>在上面描述的经典Paxos算法中，一个ballot-b 2a消息有两个功能：</p>
+<ul>
+<li>
+<p>（1）它断言这个值在ballot-b是安全的。</p>
+</li>
+<li>
+<p>（2）它指示接受者们在ballot-b为这个值投票。</p>
+</li>
+</ul>
+<p>在算法<em>Pcon</em>中，我们引入<em>1c</em>消息来实现（1），同时我们运行leader发送多个1c消息去断言多个值是安全的。我们引入了Phase 1c和Phase 2a.</p>
+<p><strong>Phase 1c. 使用来自quorum个接收者的1b消息，leader选择一组在ballot b安全的值，同时为每一个值发送一个1c消息。</strong></p>
+<p><strong>Phase 2a. leader为一些已经为它发送了1c消息的值发送一个2a消息。</strong></p>
+<p>leader不需要一次性发送所有的1c消息；它能使用单个ballot执行Phase 1c行动多次。而对于如何在Phase 1c行动中选择一个安全值，ballot-b的leader从quorum个接受者处收到1b消息后，用如下情况进行选择。</p>
+<p><strong>P3a. 如果quorum个接受者现在没有给一个比当前ballot小的值投票，那么所有值在当前ballot下都是安全的</strong></p>
+<p><strong>P3c. 如果一个值为v的ballot-c消息在Phase 1c被发出，对于c &lt; b。1. quorum个接受者现在没有为任何大于c小于b的ballot投票。 2. 这quorum个接受者的任何一个在ballot-c进行了投票且都投票给了v，那么v在ballot-b就是安全的</strong></p>
+<p>ballot-b的leader应该将1c消息发送给谁？以及它如何知道在lower ballot被发出的1c消息是哪些，从而检查P3c是否成立？在<em>PCon</em>中，1c消息是逻辑构造的，而不需要实际发送。发送一个2a消息意味着必要的1c消息已经被发出，一个报告在ballot c投票的1b消息意味着一个ballot-c 1c消息必须被发出过。<strong>（也就是如果一个1b消息报告在某个ballot给某个值投了票，如果这个1b信息是安全的，那么曾经应该有一个与之这个值对应的1c信息在某个更小的ballot被发出过）</strong> 既然这个1c信息是我们逻辑构造的，那么我们为什么要在之前的算法中引入他呢？</p>
+<p>系统不可能基于一个固定的接受者集合长时间地运行。接受者可能被移除和添加——一个叫做<em>reconfiguration</em>的程序。在经典的Paxos中，<em>reconfiguration</em>发生在共识实例间，单实例能够有效地被单个固定的接受者集合执行。现在已经有算法提出在单个共识实例地执行间进行<em>reconfiguration</em>，使用不同的ballot和可能不同的接受者集合：Vertical Paxos和未发表的Cheap Paxos（2023年了不知道发表了没有= =！）<strong>1c消息的作用是消除对于lower-numbered ballots接受者的依赖，它们可能已经被<em>reconfigured out</em>了(比如一个接受者接受了，但他被移除出了系统)。</strong> 当一个新的活跃leader开始ballot b时，情况P3a适用于ballot b第二阶段阶段尚未开始的无限多个实例。leader的1c消息可以通知未来的leader这个事实，因此，他们不必了解在编号小于b的ballot中的投票情况。<strong>（有点没懂，翻译也看不明白！但是按照我的理解就是未来的leader可以靠1c知道任何在比b小的ballot的投票情况？好像有道理，未来的leader是现在的acceptor,那么因为现在的acceptor收到了1c信息，那么未来如果它成为leader，它就能够根据之前收到的1c信来检查P3c的情况是否成立）</strong></p>
+<p>根据定义，如果两个不同的值在ballot b是安全的，那么所有的值在ballot b都是安全的。 除了发送消息说一个单一的值是安全的，或者发送消息说所有的值都是安全的，领导者没有理由做任何其他事情。</p>
+<h2 id="5-algorithm-bpcon">5. Algorithm BPCon<a hidden class="anchor" aria-hidden="true" href="#5-algorithm-bpcon">#</a></h2>
+<p>我们现在派生出算法BPCon通过拜占庭化N-acceptor算法PCon以及添加f个fake接受者。我们先考虑一个leader进程的行动。leader在算法BPCon中没有明确的2a消息或者Phase 2a行动。取而代之的是，接受者合作模仿2a消息的发送。ballot-b的领导者要求对<strong>已经发送过</strong>1c消息的值v进行2a阶段的操作。在收到第一个这样的请求后，一个接受者执行一个Phase 2av行动， 为value v发送一个ballot-b 2av消息。<strong>前提是它已经收到一个关于这个值的合法的ballot-b 1c</strong></p>
+<p>因为leader的请求只对liveness是必要的，我们不刻意地去建模它。取而代之，我们允许一个接受者去执行一个ballot b的Phase 2av行动当且仅当它已经收到了必要的1C行动，并且还没有发送一个 ballot-b的2av消息。</p>
+<p>因为算法必须容忍恶意的领导者，我们让ballot-b的领导者能够发送任意它像发送的1a和1c消息（牢记我们不能发送一个看似是其他人发送的消息）。ballot-b 1a消息在PCon中只有一种可能性，同时被允许在Phase 1a行动的任何时间发送。于是在BPCon的Phase 1a行动中与PCon的Phase 1a一致。BPCon的phase 1c行动允许ballot-b的领导者在任何时候去发送任何ballot-b的1c信息。</p>
+<p>接受者将会忽略非法的1c消息。为了保证活性，一个无故障的领导者必须发送一个real接受者能够响应的消息。我们必须确定接受者如何知道一个1c 信息是合法的。</p>
+<p>在PCon中，通过上述P3a或P3c启用投票-B 1c消息的发送，这需要从一个法定人数中收到一组1b消息并可能收到一个1c信息。<strong>在BPCon中，我们将额外信息放入1b消息中使能够进行1c消息已经被发送的推导。一个接受者将所有它发送过的2av消息作为集合装进1b消息中——对每一个值，它只将它为这个值发送的最高ballot的2av消息放入其中。这些被发送的2av消息中的每一个都对应一个合法的1c消息。</strong> 如同我们在第三节中关于拜占庭化的讨论,这意味着给定一组来自byzquorum关于ballot b的1b消息S，以下两个条件分别对应之前的P3a和P3c：</p>
+<p><strong>BP3a. 每个在S中的消息都断言它的发送者还没有投票。</strong></p>
+<p><strong>BP3c. 对一些c &lt; b和一些值 v, (a)每个在S中的消息都断言 (i)它的发送者没有在任何大于c的ballot投票以及 (ii) 如果它在ballot-c的投票是v， 且(b)有f+1个来自byzacceptors的1b消息表明它们在ballot-c发送了关于value v的2av消息</strong></p>
+<p>稍微思考一下就会发现我们可以弱化BP3c关于条件(b)断言：</p>
+<p><strong>(b&rsquo;) 如果存在f+1个来自byzacceptors的1b消息表明他们在一个大于或等于c的ballot发送了关于value v的2av消息</strong></p>
+<p><strong>去决定是否一个1c消息是合法的，每个接受者维护一个他们知道的已经发送了的1b消息的集合。</strong> 我们的抽象算法假设一个行动nondeterministically将实际发送的1b消息的子集添加进这个集合。当然，一些1b消息可能来自fake接受者。<strong>活性要求领导者确保接受者最终知道允许领导者发送 1c 消息的 1b 消息已发送</strong></p>
+<p>如前面讨论的，当它从quorum个接受者收到相同的2av消息，一个接受者才能执行Phase2b行动。一个PCon的2a消息被一组被quorum发送的相同的2av消息模拟，同时Phase2a被这组相同的2av消息中最后被发送的那条信息所模仿（代表）。</p>
+<h2 id="6-关于被发送消息的活性和学习">6. 关于被发送消息的活性和学习<a hidden class="anchor" aria-hidden="true" href="#6-关于被发送消息的活性和学习">#</a></h2>
+<p>PCon的活性要求一个无故障的领导者执行一个ballot b时没有另一个leader开始一个更高的ballot,同时leader和无故障的接受者能互相通信。BPCon的活性要求和PCon也是一样的。然而。这很难去确保一个拜占庭的领导者不执行一个更高的ballot。解决这个问题需要一些基于实时假设的工程解决方案。</p>
+<p>假设这些要求，BPCon的活性要求满足以下两个条件：</p>
+<p><strong>BL1. 领导者能找到满足BP3a或者BP3c的1b消息。</strong></p>
+<p><strong>BL2. 全部真的接受者将知道那些已经被发送的消息。</strong></p>
+<p>这两个条件意味着领导者将发送一个合法的1c消息，byzquorum的real接受者将收到1c消息以及发送2av消息，所有在byzquorum的接受者将收到哪些2av消息以及发送2b消息。学习者根据收到的这些2b消息将会学习到被选择的值。</p>
+<p>为了证明BL1成立，ballot-b的领导者最终会从BQ的接受者们那里收到1b的信息。让S记作这些1b消息的集合。我们现在证明BP3a或者BP3c成立。</p>
+<ol>
+<li>
+<p>只要假设BP3a是假的，并证明BP3c就可以了。</p>
+</li>
+<li>
+<p>令 c 为 BQ 中的接受者投票的最大ballot，令 a 为这样的接受者，并令 v 为其投票的值。</p>
+<p>证明：由1的假设可以得出存在这样一个 c。</p>
+</li>
+<li>
+<p>接受者a收到来自byzquorum的在ballot-c的关于值v的2av消息。</p>
+<p>证明：通过2以及Phase2b行动的启动条件。</p>
+</li>
+<li>
+<p>没有其他接受者在ballot c给其他不是v的值投票。</p>
+<p>证明：通过2可以证明，因为任何两个byzquorums由一个公共的接受者，以及一个接受者最多发送一次ballot-c的2av消息。</p>
+</li>
+<li>
+<p>至少f+1个接受者发送关于值v的ballot-c 2av消息。</p>
+<p>证明：通过3证明，因为一byzquorum包含至少f+1个接受者。</p>
+</li>
+<li>
+<p>BP3c的条件(b‘)成立。</p>
+</li>
+</ol>
+<p>        证明：通过5，因为一个发送一个关于value v的ballot-c 2av消息的接受者意味着，对于b &gt; c，它的ballot-b 1b消息将会报告它在某些大于等于c的ballot发送过一个关于value v的2av消息。</p>
+<ol start="7">
+<li>
+<p>BP3c的条件(a)成立。</p>
+<p>证明：通过2(没有在BQ中的接受者在大于ballot-c的ballot投票)，以及4</p>
+</li>
+<li>
+<p>QED。</p>
+<p>证明：通过1，6和7。</p>
+</li>
+</ol>
+<p><strong>这表明 BL1 最终成立。 为了证明活性，我们需要证明 BL2 成立。 为了确保它成立，领导者必须有办法确保所有真正的接受者最终都知道发送了 1b 消息。 如果 1b 消息是由真正的接受者发送的，那么该接受者可以将其 1b 消息广播给所有的byzacceptors以及领导者</strong> 我们现在提出两种方法来确保接受者知道发送了 1b 消息，即使它是由假接受者发送的。</p>
+<h2 id="61-发送证明">6.1 发送证明<a hidden class="anchor" aria-hidden="true" href="#61-发送证明">#</a></h2>
+<p>最简单的方法是领导者在其 1c 消息中包含一个证明，证明所有必要的 1b 消息都已发送。 最简单的方法是使用完整的数字签名并让 byzacceptors 签署他们的 1b 消息。领导者可以在其 1c 消息中包含必要的正确签名的 1b 消息。</p>
+<p>还可以使用MACs。一个MAC是一个签名Mp-&gt;q，一个进程p能够附带在一个消息m上，向进程q证明p发送了m。MAC Mp-&gt;q不能向除了q以外的其他进程证明任何事。</p>
+<p>假设一个消息m断言一个确定的事实，一个进程q收到这个消息以及从f+1个不同的进程p的MAC Mp-&gt;q。因为最多有f个拜占庭进程，他们中的至少一个进程的断言是真的。然而，q不能向其他任何进程证明这个事实是真实的。然而，假设它从2f+1个进程收到一个MACs的向量向量&lt; Mp-&gt;r1, &hellip;., Mp-&gt;rk &gt;以及这个消息。向量中的至少f+1由无故障进程p发送，所以他们有正确的MACs以及能够说服对应的ri进程有一个无故障的进程发送了M。因此，q能够发送消息m以及这样的MACs的2f+1个项的向量给每个进程ri作为m的断言的证明。</p>
+<h2 id="62-中继1b消息">6.2 中继1b消息<a hidden class="anchor" aria-hidden="true" href="#62-中继1b消息">#</a></h2>
+<p>我们现在描述另一个方式能确保好的接受者知道1b消息被发送了（接受者最终知道允许领导者发送 1c 消息的 1b 消息已发送）。我们让byzacceptors广播他们的1b消息给所有的byzacceptors（包括领导），同时让他们中继这个1b消息给他们的领导者以及其他byzacceptors。根据收到来自2f+1个byzacceptors的1b消息，领导者知道至少f + 1个真的接受者发送或中继给了所有byzacceptors。假设对活性的要求，这意味着所有的接受者最终都会从 f +1 个不同的的byzacceptors那里收到 1b 消息的副本（因为f+1个真的接受者会根据协议广播，并中继别人的1b消息），从中它推断出消息确实被发送了。<strong>（由其他人转发代表真的广播了）</strong></p>
+<p>这是Castro和Liskov使用的基本方法。 然而，在他们的算法中，byzacceptors 仅将广播的 1b 消息（他们称为 view-change-acks）转发给领导者（他们称为primary）。 领导者在其 1c 消息中包含（摘要）1b 消息，并且接受者要求其他 byzacceptors 中继 1c 消息中它尚未收到的任何 1b 消息。</p>
+<h1 id="7-castro-liskov算法">7. Castro-Liskov算法<a hidden class="anchor" aria-hidden="true" href="#7-castro-liskov算法">#</a></h1>
+<p>Castro-Liskov算法，就像Paxos，运行一个状态机通过执行一个有无限实列的共识算法。它包含对于处理实例的顺序的工程优化，特别是对于旧实例的垃圾收集，以及对于修复进程的状态迁移。我们认为，这些优化可以通过对经典Paxos的相应优化进行拜占庭化来获得，但是他们与共识无关。一些其他优化，比如不发送完整信息而是发送消息的摘要，是一些我们为了简单起见而忽视的细节。</p>
+<p>当我们忽视这些细节，只关心Castro-Liskov的共识算法本身，我们剩下的是一个完善BPCon的算法。在Castro-Liskov算法中，byzacceptors被叫做replicas。 ballot-b的领导者叫做primary，其他byzacceptors被叫做backups。replicas也被称作学习者。
+<strong>我们通过描述 BPCon 的消息是如何实现的来解释 Castro-Liskov 共识算法是如何改进 BPCon 的。</strong></p>
+<p><strong>1a 没有明确的1a消息；当复制体决定开始view change时，其发送是由复制体合作模仿的。</strong></p>
+<p><strong>1b view-change消息。</strong></p>
+<p><strong>1c 在view change期间，new-view消息对所有共识实例来说就像1c信息一样。</strong> 对于一个primary指示replicas去选择一个特定值的实例，它是具有该值的 1c 消息。 对于所有其他实例，它是所有值的一组 1c 消息。 （条件 BP3a 在那些其他实例中成立。）接受者同时为所有实例检查这些 1c 消息的有效性。</p>
+<p><strong>2av 这是一个backup的prepare消息。primary的pre-prepare消息serves as 2av消息以及请求一个Phase 2a行动</strong></p>
+<p><strong>2b 这是Commit phase</strong></p>
+<p>如同在6.2节中解释的一样，Castro-Liskov算法的view-change-ack被用作中继1b消息给领导。它的reply消息被replicas发送，作为learners去通知client被选择的值。</p>
+<p>我们在第 3 节中解释了拜占庭经典 Paxos 的困难。 我们无法从经典的 Paxos 中获得 Castro-Liskov 算法并不是拜占庭化的缺陷； 这是因为该算法没有对经典的 Paxos 进行细化——至少，在任何简单的细化映射下都没有。 在 Castro-Liskov 共识算法中，领导者可能需要预先准备一个值 v，即使在之前的视图中没有副本提交过 v。 这在经典的 Paxos 中是不可能发生的。</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+    </ul>
+<nav class="paginav">
+  <a class="next" href="/posts/tech/permissionedorless/">
+    <span class="title">Next »</span>
+    <br>
+    <span>[翻译]Permissioned vs. Permissionless Blockchains Explained</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+    <span>&copy; 2023 <a href="">Zhanbo&#39;s Blog</a></span>
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

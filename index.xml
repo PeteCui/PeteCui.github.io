@@ -6,7 +6,25 @@
     <description>Recent content on Zhanbo&#39;s Blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 11 Feb 2023 01:01:06 +0100</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sat, 25 Feb 2023 00:49:48 +0100</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>ByzantizingPaxos</title>
+      <link>/posts/read/byzantizingpaxos/</link>
+      <pubDate>Sat, 25 Feb 2023 00:49:48 +0100</pubDate>
+      
+      <guid>/posts/read/byzantizingpaxos/</guid>
+      <description>之前对于Byzantine Paxos的理解完全建立在Youtube上Mu Shuai老师的讲解视频上，现在决定好好读一遍Lamport老爷爷的</description>
+    </item>
+    
+    <item>
+      <title>[翻译]Permissioned vs. Permissionless Blockchains Explained</title>
+      <link>/posts/tech/permissionedorless/</link>
+      <pubDate>Mon, 13 Feb 2023 15:05:26 +0100</pubDate>
+      
+      <guid>/posts/tech/permissionedorless/</guid>
+      <description>有许可区块链是一种分布式账本技术（DLT），它牺牲了一定程度的去中心化和匿名性，以更好地适应商业需求，以及实现更高的网络速度和效率。 在这篇文</description>
+    </item>
+    
     <item>
       <title>Monoxide: Scale out Blockchains with Asynchronous Consensus Zones</title>
       <link>/posts/read/monoxide/</link>
@@ -23,6 +41,15 @@
       
       <guid>/posts/read/sharding1/</guid>
       <description>Abstract &amp;ldquo;Scaling blockchain systems under general workloads remains an open question&amp;rdquo;. The challenges of scaling are different between databasebases and blockchain since they have different failure models. The major contribution of this paper: Enhance the performance of Byzantine consensus protocols -&amp;gt; inprove the individual shard&amp;rsquo;s throughput. Design an efficient shard formation protocol -&amp;gt; leverage a trsted random beacon to securely assign nodes into shards. Design a general distributed transaction protocol</description>
+    </item>
+    
+    <item>
+      <title></title>
+      <link>/posts/read/sharper/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/read/sharper/</guid>
+      <description></description>
     </item>
     
   </channel>

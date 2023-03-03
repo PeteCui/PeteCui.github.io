@@ -5,6 +5,16 @@
     <link>/posts/tech/</link>
     <description>Recent content in Tech on Zhanbo&#39;s Blog</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language><atom:link href="/posts/tech/index.xml" rel="self" type="application/rss+xml" />
+    <language>en-us</language>
+    <lastBuildDate>Mon, 13 Feb 2023 15:05:26 +0100</lastBuildDate><atom:link href="/posts/tech/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>[翻译]Permissioned vs. Permissionless Blockchains Explained</title>
+      <link>/posts/tech/permissionedorless/</link>
+      <pubDate>Mon, 13 Feb 2023 15:05:26 +0100</pubDate>
+      
+      <guid>/posts/tech/permissionedorless/</guid>
+      <description>有许可区块链是一种分布式账本技术（DLT），它牺牲了一定程度的去中心化和匿名性，以更好地适应商业需求，以及实现更高的网络速度和效率。 在这篇文</description>
+    </item>
+    
   </channel>
 </rss>
