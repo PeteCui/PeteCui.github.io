@@ -6,7 +6,25 @@
     <description>Recent content on Zhanbo&#39;s Blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 25 Feb 2023 00:49:48 +0100</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 06 Mar 2023 00:36:57 +0100</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Zyzzyva: Speculative Byzantine Fault Tolerance</title>
+      <link>/posts/read/zyzzyva/</link>
+      <pubDate>Mon, 06 Mar 2023 00:36:57 +0100</pubDate>
+      
+      <guid>/posts/read/zyzzyva/</guid>
+      <description>Abstract Zyzzyva是一种使用投机来降低成本并简化拜占庭容错状态机复制设计的协议。在 Zyzzyva 中，副本响应客户端的请求，而无需首先运行昂贵的三阶段提交协</description>
+    </item>
+    
+    <item>
+      <title>Modern Large-Scale Data Management Systems after 40 Years of Consensus</title>
+      <link>/posts/tech/icde_tutotial4a/</link>
+      <pubDate>Sat, 04 Mar 2023 23:05:33 +0100</pubDate>
+      
+      <guid>/posts/tech/icde_tutotial4a/</guid>
+      <description>Modern Large-Scale Data Management Systems after 40 Years of Consensus My notes for video of ICDE2020 tutorial4.</description>
+    </item>
+    
     <item>
       <title>ByzantizingPaxos</title>
       <link>/posts/read/byzantizingpaxos/</link>
