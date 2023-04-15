@@ -6,7 +6,16 @@
     <description>Recent content on Zhanbo&#39;s Blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 06 Mar 2023 00:36:57 +0100</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 13 Apr 2023 23:28:21 +0200</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>WPaxos: Wide Area Network Flexible Consensus</title>
+      <link>/posts/read/wpaxos/</link>
+      <pubDate>Thu, 13 Apr 2023 23:28:21 +0200</pubDate>
+      
+      <guid>/posts/read/wpaxos/</guid>
+      <description>Abstract WPaxos是一个多领导的Paxos协议，它可以在跨广域网的部署中提供低延迟和高吞吐的共识。WPaxos使用多个领导，在这些领导中划分ob</description>
+    </item>
+    
     <item>
       <title>Zyzzyva: Speculative Byzantine Fault Tolerance</title>
       <link>/posts/read/zyzzyva/</link>
