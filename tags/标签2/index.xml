@@ -9,10 +9,10 @@
     <lastBuildDate>Thu, 25 May 2023 17:51:06 +0200</lastBuildDate><atom:link href="/tags/%E6%A0%87%E7%AD%BE2/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Selfish Mining</title>
-      <link>/posts/tech/selfishmining/</link>
+      <link>/posts/tech/selfish/</link>
       <pubDate>Thu, 25 May 2023 17:51:06 +0200</pubDate>
       
-      <guid>/posts/tech/selfishmining/</guid>
+      <guid>/posts/tech/selfish/</guid>
       <description>Introduction 工作量证明的区块链实现了一种形式的状态机复制（SMR）。但是因为区块链网络是开放的，这也意味着任何人都可以加入这个网络，系统通过激励参与者</description>
     </item>
     
