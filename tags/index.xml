@@ -5,6 +5,25 @@
     <link>/tags/</link>
     <description>Recent content in Tags on Zhanbo&#39;s Blog</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language><atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
+    <language>en-us</language>
+    <lastBuildDate>Thu, 25 May 2023 17:51:06 +0200</lastBuildDate><atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>标签1</title>
+      <link>/tags/%E6%A0%87%E7%AD%BE1/</link>
+      <pubDate>Thu, 25 May 2023 17:51:06 +0200</pubDate>
+      
+      <guid>/tags/%E6%A0%87%E7%AD%BE1/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>标签2</title>
+      <link>/tags/%E6%A0%87%E7%AD%BE2/</link>
+      <pubDate>Thu, 25 May 2023 17:51:06 +0200</pubDate>
+      
+      <guid>/tags/%E6%A0%87%E7%AD%BE2/</guid>
+      <description></description>
+    </item>
+    
   </channel>
 </rss>

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Selfish Mining | Zhanbo&#39;s Blog</title>
+<meta name="keywords" content="标签1, 标签2">
+<meta name="description" content="Introduction 工作量证明的区块链实现了一种形式的状态机复制（SMR）。但是因为区块链网络是开放的，这也意味着任何人都可以加入这个网络，系统通过激励参与者">
+<meta name="author" content="Zhanbo">
+<link rel="canonical" href="/posts/tech/selfishmining/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.css" rel="preload stylesheet" as="style">
+<script defer crossorigin="anonymous" src="/assets/js/highlight.js" onload="hljs.initHighlightingOnLoad();"></script>
+<link rel="icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="mask-icon" href="safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --hljs-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript><meta property="og:title" content="Selfish Mining" />
+<meta property="og:description" content="Introduction 工作量证明的区块链实现了一种形式的状态机复制（SMR）。但是因为区块链网络是开放的，这也意味着任何人都可以加入这个网络，系统通过激励参与者" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/tech/selfishmining/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-05-25T17:51:06+02:00" />
+<meta property="article:modified_time" content="2023-05-25T17:51:06+02:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Selfish Mining"/>
+<meta name="twitter:description" content="Introduction 工作量证明的区块链实现了一种形式的状态机复制（SMR）。但是因为区块链网络是开放的，这也意味着任何人都可以加入这个网络，系统通过激励参与者"/>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Posts",
+      "item": "/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  3 ,
+      "name": "Tech",
+      "item": "/posts/tech/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  4 ,
+      "name": "Selfish Mining",
+      "item": "/posts/tech/selfishmining/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Selfish Mining",
+  "name": "Selfish Mining",
+  "description": "Introduction 工作量证明的区块链实现了一种形式的状态机复制（SMR）。但是因为区块链网络是开放的，这也意味着任何人都可以加入这个网络，系统通过激励参与者",
+  "keywords": [
+    "标签1", "标签2"
+  ],
+  "articleBody": "Introduction 工作量证明的区块链实现了一种形式的状态机复制（SMR）。但是因为区块链网络是开放的，这也意味着任何人都可以加入这个网络，系统通过激励参与者（矿工）来遵守协议。因此，不像经典的SMR协议，我们不仅需要限制恶意参与者的数量，还需要关心矿工是否真的被激励去遵循我们规定好的协议（Nakamoto’s style consensus）。矿工能否相对公平的获得收益是确保网络长期稳定运行的关键(Compatibility)——算力与收益成正比。\nThe Game 我们将系统描述成一个矿工们一起进行的游戏。游戏中的玩家们(miners)负责生成区块（blocks），游戏以轮数的方式进行。每一轮一个矿工生成区块，同时任何矿工能够发布它生成的区块。我们假设网络模型是同步的，所以所有矿工可以在新一轮游戏中收到上一轮被发布的消息。\n根据规定的协议，每个矿工延申最长链；当有两个分叉拥有相同的长度时，矿工选择在他收到的第一个区块进行延申。\n游戏中的每个玩家渴望最大化他们的收入。utility function的定义如下：sizeof(attacker’s blocks)/sizeof(main chain).\nBitcoin Mining Is Not Incentive Compatible ”Majority is not Enough: Bitcoin Mining is Vulnerable“这篇论文阐述了bitcoin网络并不是Compatibility的，矿工们可以通过自私挖矿的策略获得超过（自己算力/全网算力）的收益比例。\n攻击者尽可能地形成一个长的secret branch（挖出以后不及时公布，并独自继续在自己的secret branch上贡献算力，相当于抢跑） 在自己的secret branch将要失去主链地位时（one step behind），及时公布自己的secret branch，以维持自己的主链地位（最长链原则），从而自己可以获得收益，而在另一个短branch贡献的诚实矿工的算力被浪费了。 The Risk of Selfish Mining 当攻击者的secret branch没有绝对的领导地位（没有足够的secret block储配以实现通过发布自己的secret block来使自己的链保持最长链的地位时）。它可能会需要承担一些风险，因为如果它选择隐藏自己的区块并成功基于自己的区块先计算出下一个区块以形成更长的链时，它将获得两个区块的奖励；反之，诚实的矿工基于另一条分支先计算出下一个区块时，自己的secret branch成为短链，此时它应该基于另一条branch进行下一个区块的计算（因为majority miners基于另一条branch进行计算，自己的算力总是落后的）此时它没有获得任何收益。\n当然，攻击者仍然发布自己的区块故意地形成分叉，全网算力此时就分布在这两条分叉上，当有更多的算力在secret block上计算下一个区块，那么secret block就有更高的概率被包含在主链中，因为当下一个区块被生成时，另一条链根据最长链原则就被废弃；反之如果更多的算力在另一个block上计算下一个区块，那么另一个block就有更高的概率被废弃。所以为了提高secret block被包含在主链中的概率，攻击者需要尽可能的让全网的其他矿工在自己的secret block上进行下一个区块的计算。在Bitcoin网络中，诚实的矿工先看到哪一个新区快，就在这个新区快上进行下一个区块的计算，所以对于攻击者来说，它的策略应该是尽可能的让其他矿工先看到自己的区块。reachability = (sizeof(FirstLook)/sizeof(Honest Miners)，当reachability = 1时，攻击者一定可以使自己的secret block被包含在主链中，因为此时全网都基于secret block计算下一个区块。攻击者可以通过女巫攻击，在全网均匀分布足够数量的只用于传播secret block的零算力节点，并且当一发现有诚实矿工挖矿成功，就发布攻击者的secret block，那么我们可以使reachability近似为1。\nState Machine With Transition Frequencies and Analysis Cuts α: 攻击者算力\n(1-α): 诚实矿工算力\nγ: reachability\n由于secret chain长度不领先时存在我们之前提到的race的情况，所以当secret chain从领先2个长度变为只领先1个长度时，我们及时公布所有secret blocks以保证收益，这也就是为什么状态机从状态2直接跳回状态0的原因。状态0’则是区块链处于诚实矿工的branch和攻击者branch的长度一样时的状态。从状态0‘到状态0有三种情况：\n(1-γ)(1-α) 诚实矿工在诚实矿工的branch上计算出新区块的概率。\nγ (1-α) 诚实矿工在攻击者的branch上计算出新区块的概率。\nα 攻击者在攻击者的branch上计算出新区块的概率。\nEvaluation and Robustness Observation: 对于给定的γ，规模为α的池子获得的收入大于其相对规模α。在以下范围内：\nSolution: 可以优化bitcoin协议使矿工随机选择基于哪一个分叉进行计算，降低reachability = 1/2。\nReference [1] https://arxiv.org/pdf/1311.0243.pdf\n[2] Blockchain Selfish Mining\n[3] https://academy.binance.com/zh/articles/selfish-mining-explained\n[4] https://www.bilibili.com/video/BV1Eb4y1Q77A/?vd_source=007dacf24cc6096a158e9e551a51c08f\n",
+  "wordCount" : "1967",
+  "inLanguage": "en",
+  "datePublished": "2023-05-25T17:51:06+02:00",
+  "dateModified": "2023-05-25T17:51:06+02:00",
+  "author":[{
+    "@type": "Person",
+    "name": "Zhanbo"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "/posts/tech/selfishmining/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Zhanbo's Blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="" accesskey="h" title="Zhanbo&#39;s Blog (Alt + H)">
+                <img src="img/profile.jpg" alt="" aria-label="logo"
+                    height="35">Zhanbo&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="/" title="Home">
+                    <span>Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="posts" title="Posts">
+                    <span>Posts</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="">Home</a>&nbsp;»&nbsp;<a href="/posts/">Posts</a>&nbsp;»&nbsp;<a href="/posts/tech/">Tech</a></div>
+    <h1 class="post-title">
+      Selfish Mining
+    </h1>
+    <div class="post-meta"><span title='2023-05-25 17:51:06 +0200 CEST'>2023-05-25</span>&nbsp;·&nbsp;4 min&nbsp;·&nbsp;Zhanbo
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#introduction" aria-label="Introduction">Introduction</a></li>
+                <li>
+                    <a href="#the-game" aria-label="The Game">The Game</a></li>
+                <li>
+                    <a href="#bitcoin-mining-is-not-incentive-compatible" aria-label="Bitcoin Mining Is Not Incentive Compatible">Bitcoin Mining Is Not Incentive Compatible</a></li>
+                <li>
+                    <a href="#the-risk-of-selfish-mining" aria-label="The Risk of Selfish Mining">The Risk of Selfish Mining</a></li>
+                <li>
+                    <a href="#state-machine-with-transition-frequencies-and-analysis-cuts" aria-label="State Machine With Transition Frequencies and Analysis Cuts">State Machine With Transition Frequencies and Analysis Cuts</a></li>
+                <li>
+                    <a href="#evaluation-and-robustness" aria-label="Evaluation and Robustness">Evaluation and Robustness</a></li>
+                <li>
+                    <a href="#reference" aria-label="Reference">Reference</a>
+                </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h2 id="introduction">Introduction<a hidden class="anchor" aria-hidden="true" href="#introduction">#</a></h2>
+<p>工作量证明的区块链实现了一种形式的状态机复制（SMR）。但是因为区块链网络是开放的，这也意味着任何人都可以加入这个网络，系统通过激励参与者（矿工）来遵守协议。因此，不像经典的SMR协议，我们不仅需要限制恶意参与者的数量，还需要关心矿工是否真的被激励去遵循我们规定好的协议（Nakamoto&rsquo;s style consensus）。<strong>矿工能否相对公平的获得收益是确保网络长期稳定运行的关键(Compatibility)——算力与收益成正比</strong>。</p>
+<h2 id="the-game">The Game<a hidden class="anchor" aria-hidden="true" href="#the-game">#</a></h2>
+<p>我们将系统描述成一个矿工们一起进行的游戏。游戏中的玩家们(miners)负责生成区块（blocks），游戏以轮数的方式进行。每一轮一个矿工生成区块，同时任何矿工能够发布它生成的区块。我们假设网络模型是同步的，所以所有矿工可以在新一轮游戏中收到上一轮被发布的消息。</p>
+<p>根据规定的协议，每个矿工延申最长链；当有两个分叉拥有相同的长度时，矿工选择在他收到的第一个区块进行延申。</p>
+<p>游戏中的每个玩家渴望最大化他们的收入。utility function的定义如下：<strong>sizeof(attacker&rsquo;s  blocks)/sizeof(main chain)</strong>.</p>
+<h2 id="bitcoin-mining-is-not-incentive-compatible">Bitcoin Mining Is Not Incentive Compatible<a hidden class="anchor" aria-hidden="true" href="#bitcoin-mining-is-not-incentive-compatible">#</a></h2>
+<p>”Majority is not Enough: Bitcoin Mining is Vulnerable“这篇论文阐述了bitcoin网络并不是Compatibility的，矿工们可以通过自私挖矿的策略获得超过（自己算力/全网算力）的收益比例。</p>
+<ol>
+<li>
+<p>攻击者尽可能地形成一个长的secret branch（挖出以后不及时公布，并独自继续在自己的secret branch上贡献算力，相当于抢跑）
+<img loading="lazy" src="1" alt=""  />
+</p>
+</li>
+<li>
+<p>在自己的secret branch将要失去主链地位时（one step behind），及时公布自己的secret branch，以维持自己的主链地位（最长链原则），从而自己可以获得收益，而在另一个短branch贡献的诚实矿工的算力被浪费了。
+<img loading="lazy" src="2" alt=""  />
+</p>
+</li>
+</ol>
+<h2 id="the-risk-of-selfish-mining">The Risk of Selfish Mining<a hidden class="anchor" aria-hidden="true" href="#the-risk-of-selfish-mining">#</a></h2>
+<p>当攻击者的secret branch没有绝对的领导地位（没有足够的secret block储配以实现通过发布自己的secret block来使自己的链保持最长链的地位时）。它可能会需要承担一些风险，因为如果它选择隐藏自己的区块并成功基于自己的区块先计算出下一个区块以形成更长的链时，它将获得两个区块的奖励；反之，诚实的矿工基于另一条分支先计算出下一个区块时，自己的secret branch成为短链，此时它应该基于另一条branch进行下一个区块的计算（因为majority miners基于另一条branch进行计算，自己的算力总是落后的）此时它没有获得任何收益。</p>
+<p><img loading="lazy" src="3" alt=""  />
+</p>
+<p>当然，攻击者仍然发布自己的区块故意地形成分叉，全网算力此时就分布在这两条分叉上，当有更多的算力在secret block上计算下一个区块，那么secret block就有更高的概率被包含在主链中，因为当下一个区块被生成时，另一条链根据最长链原则就被废弃；反之如果更多的算力在另一个block上计算下一个区块，那么另一个block就有更高的概率被废弃。所以为了提高secret block被包含在主链中的概率，攻击者需要尽可能的让全网的其他矿工在自己的secret block上进行下一个区块的计算。在Bitcoin网络中，诚实的矿工先看到哪一个新区快，就在这个新区快上进行下一个区块的计算，所以对于攻击者来说，它的策略应该是尽可能的让其他矿工先看到自己的区块。reachability = (sizeof(FirstLook)/sizeof(Honest Miners)，当reachability = 1时，攻击者一定可以使自己的secret block被包含在主链中，因为此时全网都基于secret block计算下一个区块。攻击者可以通过女巫攻击，在全网均匀分布足够数量的只用于传播secret block的零算力节点，并且当一发现有诚实矿工挖矿成功，就发布攻击者的secret block，那么我们可以使reachability近似为1。</p>
+<h2 id="state-machine-with-transition-frequencies-and-analysis-cuts">State Machine With Transition Frequencies and Analysis Cuts<a hidden class="anchor" aria-hidden="true" href="#state-machine-with-transition-frequencies-and-analysis-cuts">#</a></h2>
+<p>α: 攻击者算力</p>
+<p>(1-α): 诚实矿工算力</p>
+<p>γ: reachability</p>
+<p>由于secret chain长度不领先时存在我们之前提到的race的情况，所以当secret chain从领先2个长度变为只领先1个长度时，我们及时公布所有secret blocks以保证收益，这也就是为什么状态机从状态2直接跳回状态0的原因。状态0’则是区块链处于诚实矿工的branch和攻击者branch的长度一样时的状态。从状态0‘到状态0有三种情况：</p>
+<ol>
+<li>
+<p>(1-γ)(1-α) 诚实矿工在诚实矿工的branch上计算出新区块的概率。</p>
+</li>
+<li>
+<p>γ (1-α) 诚实矿工在攻击者的branch上计算出新区块的概率。</p>
+</li>
+<li>
+<p>α 攻击者在攻击者的branch上计算出新区块的概率。</p>
+<p><img loading="lazy" src="4" alt=""  />
+</p>
+</li>
+</ol>
+<h2 id="evaluation-and-robustness">Evaluation and Robustness<a hidden class="anchor" aria-hidden="true" href="#evaluation-and-robustness">#</a></h2>
+<p><strong>Observation:</strong> 对于给定的γ，规模为α的池子获得的收入大于其相对规模α。在以下范围内：</p>
+<p><img loading="lazy" src="5" alt=""  />
+</p>
+<p><strong>Solution:</strong> 可以优化bitcoin协议使矿工随机选择基于哪一个分叉进行计算，降低reachability = 1/2。</p>
+<h2 id="reference">Reference<a hidden class="anchor" aria-hidden="true" href="#reference">#</a></h2>
+<p>[1] <a href="https://arxiv.org/pdf/1311.0243.pdf">https://arxiv.org/pdf/1311.0243.pdf</a></p>
+<p>[2] <a href="https://decentralizedthoughts.github.io/2020-02-26-selfish-mining/">Blockchain Selfish Mining</a></p>
+<p>[3] <a href="https://academy.binance.com/zh/articles/selfish-mining-explained">https://academy.binance.com/zh/articles/selfish-mining-explained</a></p>
+<p>[4] <a href="https://www.bilibili.com/video/BV1Eb4y1Q77A/?vd_source=007dacf24cc6096a158e9e551a51c08f">https://www.bilibili.com/video/BV1Eb4y1Q77A/?vd_source=007dacf24cc6096a158e9e551a51c08f</a></p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="/tags/%E6%A0%87%E7%AD%BE1/">标签1</a></li>
+      <li><a href="/tags/%E6%A0%87%E7%AD%BE2/">标签2</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="next" href="/posts/read/wpaxos/">
+    <span class="title">Next »</span>
+    <br>
+    <span>WPaxos: Wide Area Network Flexible Consensus</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+    <span>&copy; 2023 <a href="">Zhanbo&#39;s Blog</a></span>
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>
